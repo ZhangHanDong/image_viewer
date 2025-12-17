@@ -255,16 +255,79 @@ IMAGE_MODEL_ID="dall-e-3"            # 图像生成（第四周）
 
 ## 选修内容：ACP Agent 集成
 
-**对应 Workshop**: `Appendix/4 - Using ACP Agents`
+**对应 Workshop**: `Appendix/Moly Kit Integration/4 - Using ACP Agents`
+
+### 概述
+
+ACP (Agent Client Protocol) 允许将 Claude Code、Codex 等 AI 编程代理集成到 Makepad 应用中。学员可以学习如何构建一个可以调用真正 AI 编程代理的桌面应用。
+
+### 技术架构
+
+| 层级 | 组件 | 职责 |
+|------|------|------|
+| UI 层 | Makepad App + Chat Widget | 用户界面、消息显示、权限按钮 |
+| 适配层 | AcpBotClient | 实现 BotClient trait，转换消息格式 |
+| 协议层 | AcpClient (moly-kit) | JSON-RPC 2.0 通信，进程管理 |
+| 桥接层 | ACP Adapters (npm) | 将 ACP 协议转换为各 Agent 的原生协议 |
+| Agent 层 | Claude Code / Codex | 实际执行代码操作的 AI Agent |
+| 云服务层 | Anthropic / OpenAI API | 提供 AI 推理能力 |
 
 ### 学习内容
-- Agent Client Protocol (ACP) 协议
-- Claude Code / Codex 代理集成
-- 权限管理与工具审批流程
+
+#### 1. AcpClient 使用
+- 使用 Moly Kit 的 `AcpClient` 与 ACP 代理通信
+- 创建 `BotClient` 适配器封装 ACP 代理
+
+#### 2. 事件映射
+| ACP 事件 | MessageContent 字段 |
+|----------|---------------------|
+| `AcpEvent::Text` | `text` |
+| `AcpEvent::Thinking` | `reasoning` |
+| `AcpEvent::ToolUse` | `tool_calls` (Approved) |
+| `AcpEvent::PermissionRequest` | `tool_calls` (Pending) |
+| `AcpEvent::ToolResult` | `tool_results` |
+
+#### 3. 权限处理流程
+1. 收到 `AcpEvent::PermissionRequest`
+2. Chat Widget 显示 Approve/Deny 按钮
+3. 用户点击批准/拒绝
+4. 调用 `AcpClient::respond_permission()` 或 `cancel_permission()`
+5. 代理继续执行或取消
+
+#### 4. 图像上下文传递
+- 将当前图片路径传递给 Agent
+- 代理可以分析或处理图像
+
+### 前置准备
+
+```bash
+# 安装 Claude Code ACP 适配器
+npm install -g @zed-industries/claude-code-acp
+
+# 认证方式（二选一）
+claude login                        # 订阅用户浏览器登录
+export ANTHROPIC_API_KEY="your-key" # API Key 方式
+
+# 或安装 Codex ACP 适配器
+npm install -g @zed-industries/codex-acp
+codex /login                        # 订阅用户登录
+export OPENAI_API_KEY="your-key"    # API Key 方式
+```
+
+### UI 组件
+- **Agent Dropdown**: 选择 Claude Code 或 Codex
+- **Working Directory Input**: 设置代理工作目录
+- **Connect Button**: 启动/停止代理连接
+- **Status Label**: 显示连接状态
+- **ACP Chat**: 与代理交互的聊天界面
 
 ### 加分规则
 - 完成可运行 Demo：+5 分
 - 需提交录屏或现场演示
+- 加分展示（可选）：
+  - 添加自定义工具供代理使用
+  - 实现会话持久化管理
+  - 配置 MCP Server 扩展代理能力
 
 ---
 
